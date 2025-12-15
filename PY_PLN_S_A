@@ -1,0 +1,851 @@
+**********************************************************************************;
+
+%let datetime = %sysfunc(today(),yymmddn8.)_%sysfunc(compress(%sysfunc(time(),time.),:));
+%let log_dir = \\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\Log;
+
+/* send the SAS log and print output to a saved file on Unix */
+
+proc printto log = "&log_dir/payplan_monitoring_dashboard_&datetime..log" new;
+run;
+RSUBMIT;
+
+%put >>>>>>>>>> This program is starting running at %left(%sysfunc(datetime(), datetime20.)) by %sysget(USER) <<<<<<<<<<;
+
+libname bread '/sas/RSD/COB/bread';
+/*libname bread '/sas/RSD/COB/bread/dev'; */
+ENDRSUBMIT;
+libname bread slibref=bread server=_server_;
+libname uwork slibref=work server=_server_;
+
+rsubmit;
+data _null_;
+    y_d = today()-1;
+    t_d = today();
+    mth_end1 = intnx('month', today(),0,'E');
+    mth_beg1 = intnx('month', today(),0,'B');
+    mth_end2 = intnx('month', today(),0,'E');
+    call symput('yes_d',"'"||put(y_d,yymmdd10.)||"'");
+    call symput('tod_d',"'"||put(t_d,yymmdd10.)||"'");
+    call symput('label',put(t_d,YYMMddn8.));
+    call symput('mth_end', "'"||put(mth_end1,date9.)||"'");
+    call symput('mth_beg', "'"||put(mth_beg1,date9.)||"'");
+    call symput('mth_end2',put(mth_end2,monyy7.));
+run;
+
+%put 'Yesterday= ' &yes_d. ;
+%put 'Today= ' &tod_d. ;
+%put 'Label= ' &label. ;
+%put 'mth_end= ' &mth_end. ;
+%put 'mth_beg= ' &mth_beg. ;
+%put &mth_end2;
+endrsubmit;
+
+data _null_;
+    y_d = today()-1;
+    t_d = today();
+    mth_end1 = intnx('month', today(),0,'E');
+    mth_beg1 = intnx('month', today(),0,'B');
+    mth_end2 = intnx('month', today(),0,'E');
+    call symput('yes_d',"'"||put(y_d,yymmdd10.)||"'");
+    call symput('tod_d',"'"||put(t_d,yymmdd10.)||"'");
+    call symput('label',put(t_d,YYMMddn8.));
+    call symput('mth_end', "'"||put(mth_end1,date9.)||"'");
+    call symput('mth_beg', "'"||put(mth_beg1,date9.)||"'");
+    call symput('mth_end2',put(mth_end2,monyy7.));
+run;
+
+PROC IMPORT
+DATAFILE="\\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\SF_Datapull\SF_Data.xlsx"
+/*DATAFILE="\\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\SF_Datapull\dev\SF_Data.xlsx" */
+OUT=bread.loan_application_&label.
+DBMS=excel2000
+replace;
+sheet='loan_application';
+getnames=yes;
+run;
+
+PROC IMPORT
+DATAFILE="\\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\SF_Datapull\SF_Data.xlsx"
+/*DATAFILE="\\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\SF_Datapull\dev\SF_Data.xlsx" */
+OUT=bread.loan_&label.
+DBMS=excel2000
+replace;
+sheet='loan';
+getnames=yes;
+run;
+
+proc sql;
+create table uwork.stage1_accuracy as
+select
+a.FT_Application_Date__c,
+a.FT_Application_Status__c,
+a.FT_Consent_for_Hard_Pull_Credit_,
+a.FT_Consent_for_Initial_SMS__c,
+a.FT_Consent_for_Soft_Pull_Credit_,
+a.FT_Date_Time_Consent_Soft_Pull_C,
+a.FT_Date_Time_Consent_for_Initial,
+a.FT_LAO_1_Amortization_Term_Perio,
+a.FT_LAO_1_Client_APR__c,
+a.FT_LAO_1_Interest_Rate__c,
+a.FT_LAO_1_Loan_Type__c,
+a.FT_LAO_1_Status__c,
+a.FT_LAO_1_Term__c,
+a.FT_LAO_2_Amortization_Term_Perio,
+a.FT_LAO_2_Client_APR__c,
+a.FT_LAO_2_Interest_Rate__c,
+a.FT_LAO_2_Loan_Type__c,
+a.FT_LAO_2_Status__c,
+a.FT_LAO_2_Term__c,
+a.FT_LAO_3_Amortization_Term_Perio,
+a.FT_LAO_3_Client_APR__c,
+a.FT_LAO_3_Interest_Rate__c,
+a.FT_LAO_3_Loan_Type__c,
+a.FT_LAO_3_Status__c,
+a.FT_LAO_3_Term__c,
+a.FT_LAO_4_Amortization_Term_Perio,
+a.FT_LAO_4_Client_APR__c,
+a.FT_LAO_4_Interest_Rate__c,
+a.FT_LAO_4_Loan_Type__c,
+a.FT_LAO_4_Status__c,
+a.FT_LAO_4_Term__c,
+a.FT_LAO_5_Amortization_Term_Perio,
+a.FT_LAO_5_Client_APR__c,
+a.FT_LAO_5_Interest_Rate__c,
+a.FT_LAO_5_Loan_Type__c,
+a.FT_LAO_5_Status__c,
+a.FT_LAO_5_Term__c,
+a.FT_LAO_6_Amortization_Term_Perio,
+a.FT_LAO_6_Client_APR__c,
+a.FT_LAO_6_Interest_Rate__c,
+a.FT_LAO_6_Loan_Type__c,
+a.FT_LAO_6_Status__c,
+a.FT_LAO_6_Term__c,
+a.FT_Loan_Application_ID__c,
+a.FT_Merchant_1_Amount_Estimated__,
+a.FT_Merchant_2_Amount_Estimated__,
+a.FT_Origination_Cost_Of_Borrowing,
+a.FT_Origination_Interest_Over_Ter,
+a.FT_Origination_Maturity_Date__c,
+a.FT_Origination_Payment_Amount_PI,
+a.FT_Origination_Payment_Amount_Te,
+a.FT_Total_Loan_Value_Estimated__c,
+a.PTR_Applicant_Client_Name__c,
+a.PTR_Merchant_1_Name__c,
+a.PTR_Merchant_2_Name__c,
+a.PTR_Program_Name__c,
+a.FT_First_Payment_Date__c,
+a.FT_Date_of_Advance__c,
+a.id,
+b.FT_Amortization_End_Date__c,
+b.FT_Amortization_Term_Period__c,
+b.FT_Amortization_Type__c,
+b.FT_As_of_Date__c,
+b.FT_Client_level_APR__c,
+b.FT_Closed_Date__c,
+b.FT_Closed_Reason__c,
+b.FT_Date_Time_Elec_Comm_Consent_L,
+b.FT_Date_Time_Elec_Comm_Consent_M,
+b.FT_Days_in_Arrears__c,
+b.FT_Delinquency_in_Days__c,
+b.FT_Effective_Interest_Rate__c,
+b.FT_Elec_Comm_Consent_Trans_Oper_M,
+b.FT_Elec_Comm_Consent_Comp_Legal_,
+b.FT_First_Day_of_Arrears__c,
+b.FT_Loan_Settled_Date__c,
+b.FT_Loan_Status__c,
+b.FT_Merchant_1_Final_Balance__c,
+b.FT_Merchant_2_Final_Balance__c,
+b.FT_Next_Payment_Amount_P_I__c,
+b.FT_Next_Payment_Date__c,
+b.FT_Opening_Principal_Balance__c,
+b.FT_Original_Amortization__c,
+b.FT_Original_Principal_Balance__c,
+b.FT_Original_Term__c,
+b.FT_Outstanding_Principal_Amount_,
+b.FT_Payment_Frequency__c,
+b.FT_Remaining_Amortization__c,
+b.FT_Remaining_Cost_of_Borrowing_,
+b.FT_Remaining_Interest_over_Term_,
+b.FT_Remaining_Payment_Amount_Term,
+b.FT_Settled_APR__c,
+b.FT_Settled_Cost_of_Borrowing__c,
+b.FT_Settled_Interest_Over_Term__c,
+b.FT_Settled_Interest_Rate__c,
+b.FT_Settled_Payment_Amount_PI__c,
+b.FT_Settled_Payment_Amount_Term_,
+b.FT_Term_Remaining__c,
+b.FT_Total_Delinquent_Amount__c,
+b.FT_Write_Off__c,
+b.FT_e_signature_date_and_time_sta,
+b.FT_e_signature_for_Loan_Agreemen,
+b.Name,
+b.PTR_Default_Insurance__c,
+b.PTR_Delinquency_Status__c,
+b.PTR_Loan_Type__c,
+b.PTR_Other_Fees__c,
+b.PTR_Prepayment_Charges__c,
+b.PTR_Prepayment_Privileges__c,
+b.PTR_Loan_Application_Name__c,
+b.PTR_Date_Opened__c,
+b.FT_Loan_ID__c,
+b.FT_Loan_Number__c,
+a.FT_Date_of_Advance__c as FT_Date_of_Advance__c_1,
+b.FT_Date_of_Advance__c as FT_Date_of_Advance__c_2,
+a.FT_First_Payment_Date__c as FT_First_Payment_Date__c_1,
+b.FT_First_Payment_Date__c as FT_First_Payment_Date__c_2,
+
+case when FT_Loan_Application_ID__c not in ('.',' ') and FT_Loan_ID__c in ('.',' ') then "APP_ONLY"
+when FT_Loan_Application_ID__c in ('.',' ') and FT_Loan_ID__c not in ('.',' ') then "LOAN_ONLY"
+else "APP_LOAN_Joined" end as APP_LOAN_JOIN_SUCCESS_IND
+from bread.loan_application_&label. as a
+full outer join bread.loan_&label. as b
+on a.ID = b.PTR_Loan_Application_Name__c;
+quit;
+
+data bread.stage1_accuracy_cur_&label.;
+set uwork.stage1_accuracy ;
+
+/**************************************Convert Esignature timestamp to date********************************************/
+esign_date = put(input(substr(FT_e_signature_date_and_time_sta,1,10),anydtdte10.),yymmdd10.);
+
+/**************************************Get Application Offering Data**************************************************/
+
+if FT_LAO_1_Status__c = 'Accepted' then do;
+    LAO_status          =   FT_LAO_1_Status__c;
+    LAO_Amort           =   FT_LAO_1_Amortization_Term_Perio;
+    LAO_interest        =   FT_LAO_1_Interest_Rate__c;
+    LAO_type            =   FT_LAO_1_Loan_Type__c;
+    LAO_client_APR      =   FT_LAO_1_Client_APR__c;
+    LAO_term            =   FT_LAO_1_Term__c;
+end;
+
+else if FT_LAO_2_Status__c = 'Accepted' then do;
+    LAO_status          =   FT_LAO_2_Status__c;
+    LAO_Amort           =   FT_LAO_2_Amortization_Term_Perio;
+    LAO_interest        =   FT_LAO_2_Interest_Rate__c;
+    LAO_type            =   FT_LAO_2_Loan_Type__c;
+    LAO_client_APR      =   FT_LAO_2_Client_APR__c;
+    LAO_term            =   FT_LAO_2_Term__c;
+end;
+
+else if FT_LAO_3_Status__c = 'Accepted' then do;
+    LAO_status          =   FT_LAO_3_Status__c;
+    LAO_Amort           =   FT_LAO_3_Amortization_Term_Perio;
+    LAO_interest        =   FT_LAO_3_Interest_Rate__c;
+    LAO_type            =   FT_LAO_3_Loan_Type__c;
+    LAO_client_APR      =   FT_LAO_3_Client_APR__c;
+    LAO_term            =   FT_LAO_3_Term__c;
+end;
+
+else if FT_LAO_4_Status__c = 'Accepted' then do;
+    LAO_status          =   FT_LAO_4_Status__c;
+    LAO_Amort           =   FT_LAO_4_Amortization_Term_Perio;
+    LAO_interest        =   FT_LAO_4_Interest_Rate__c;
+    LAO_type            =   FT_LAO_4_Loan_Type__c;
+    LAO_client_APR      =   FT_LAO_4_Client_APR__c;
+    LAO_term            =   FT_LAO_4_Term__c;
+end;
+
+else if FT_LAO_5_Status__c = 'Accepted' then do;
+    LAO_status          =   FT_LAO_5_Status__c;
+    LAO_Amort           =   FT_LAO_5_Amortization_Term_Perio;
+    LAO_interest        =   FT_LAO_5_Interest_Rate__c;
+    LAO_type            =   FT_LAO_5_Loan_Type__c;
+    LAO_client_APR      =   FT_LAO_5_Client_APR__c;
+    LAO_term            =   FT_LAO_5_Term__c;
+end;
+
+else if FT_LAO_6_Status__c = 'Accepted' then do;
+    LAO_status          =   FT_LAO_6_Status__c;
+    LAO_Amort           =   FT_LAO_6_Amortization_Term_Perio;
+    LAO_interest        =   FT_LAO_6_Interest_Rate__c;
+    LAO_type            =   FT_LAO_6_Loan_Type__c;
+    LAO_client_APR      =   FT_LAO_6_Client_APR__c;
+    LAO_term            =   FT_LAO_6_Term__c;
+end;
+
+/******************************************Total number of Application Offerings****************************************/
+if FT_LAO_1_Status__c in ('Accepted','Not Selected') and FT_LAO_2_Status__c in ('Accepted','Not Selected')
+  and FT_LAO_3_Status__c in ('Accepted','Not Selected') and FT_LAO_4_Status__c in ('Accepted','Not Selected')
+  and FT_LAO_5_Status__c in ('Accepted','Not Selected') and FT_LAO_6_Status__c in ('Accepted','Not Selected') then do;
+  LAO_total_number = 6;
+end;
+
+else if FT_LAO_1_Status__c in ('Accepted','Not Selected') and FT_LAO_2_Status__c in ('Accepted','Not Selected')
+  and FT_LAO_3_Status__c in ('Accepted','Not Selected') and FT_LAO_4_Status__c in ('Accepted','Not Selected')
+  and FT_LAO_5_Status__c in ('Accepted','Not Selected') then do;
+  LAO_total_number = 5;
+end;
+
+else if FT_LAO_1_Status__c in ('Accepted','Not Selected') and FT_LAO_2_Status__c in ('Accepted','Not Selected')
+  and FT_LAO_3_Status__c in ('Accepted','Not Selected') and FT_LAO_4_Status__c in ('Accepted','Not Selected') then do;
+  LAO_total_number = 4;
+end;
+
+else if FT_LAO_1_Status__c in ('Accepted','Not Selected') and FT_LAO_2_Status__c in ('Accepted','Not Selected')
+  and FT_LAO_3_Status__c in ('Accepted','Not Selected') then do;
+  LAO_total_number = 3;
+end;
+
+else if FT_LAO_1_Status__c in ('Accepted','Not Selected') and FT_LAO_2_Status__c in ('Accepted','Not Selected') then do;
+  LAO_total_number = 2;
+end;
+
+else if FT_LAO_1_Status__c in ('Accepted','Not Selected') then do;
+  LAO_total_number = 1;
+end;
+
+/*************************************************# of accepted Offerings********************************************/
+
+combined_AO_status_string = substr(FT_LAO_1_Status__c,1,1)||' '||substr(FT_LAO_2_Status__c,1,1)||' '||substr(FT_LAO_3_Status__c,1,1)||' '||substr(FT_LAO_4_Status__c,1,1)||' '||substr(FT_LAO_5_Status__c,1,1)||' '||substr(FT_LAO_6_Status__c,1,1);
+
+look_for = 'A';
+accepted_count=0;
+do i = 1 to countw(combined_AO_status_string);
+    accepted_count = accepted_count + (scan(combined_AO_status_string,i) = look_for);
+end;
+drop i;
+
+
+/**********************************************Principal Amount********************************************************/
+
+/*Stage1*/
+if FT_Total_Loan_Value_Estimated__c eq . then pop1_principal_amt = 1;
+else pop1_principal_amt = 0;
+
+if FT_Total_Loan_Value_Estimated__c > 1200 or FT_Total_Loan_Value_Estimated__c <= 0 then do;
+    Ai_principal_amount = 1;
+    Ai_principal_amount_word = 'Fail';
+    principal_amt_plot_1 = put(FT_Total_Loan_Value_Estimated__c,10.);
+end;
+else do;
+    Ai_principal_amount = 0;
+    Ai_principal_amount_word = 'Pass';
+    principal_amt_plot_1 = '<=$1200';
+end;
+
+/*Stage2*/
+if FT_Original_Principal_Balance__c eq . then pop2_principal_amt = 1;
+else pop2_principal_amt = 0;
+
+if FT_Original_Principal_Balance__c > 1200 or FT_Original_Principal_Balance__c <= 0 then do;
+    Ai_principal_amount_2 = 1;
+    Ai_principal_amount_word_2 = 'Fail';
+    principal_amt_plot_2 = put(FT_Original_Principal_Balance__c,10.);
+end;
+else do;
+    Ai_principal_amount_2 = 0;
+    Ai_principal_amount_word_2 = 'Pass';
+    principal_amt_plot_2 = '<=$1200';
+end;
+
+/**************************************Payment Amount Replication**************************************************/
+/*Stage1*/
+
+if LAO_type = '0% APR' then do;
+    /*stage1*/
+    R_payment_amt = FT_Total_Loan_Value_Estimated__c/LAO_Amort;
+    R_payment_difference = round(abs(R_payment_amt-FT_Origination_Payment_Amount_PI),.001);
+    if FT_Origination_Payment_Amount_PI eq R_payment_amt and FT_Origination_Payment_Amount_PI ne . and R_payment_amt ne . then do;
+        Ri_payment_amt = 0;
+        Ri_payment_amt_word = 'Pass';
+    end;
+    else if abs(FT_Origination_Payment_Amount_PI - R_payment_amt) < 0.01 and FT_Origination_Payment_Amount_PI ne . and R_payment_amt ne . then do;
+        Ri_payment_amt = 0;
+        Ri_payment_amt_word = 'Pass';
+    end;
+    else do;
+        Ri_payment_amt = 1;
+        Ri_payment_amt_word = 'Fail';
+    end;
+
+    if FT_Origination_Payment_Amount_PI eq . then pop1_payment_amt = 1;
+    else pop1_payment_amt = 0;
+
+
+    /*stage2*/
+    R_payment_amt_2 = FT_Original_Principal_Balance__c/FT_Original_Amortization__c;
+    R_payment_difference2 = round(abs(R_payment_amt_2-FT_Settled_Payment_Amount_PI__c),.001);
+    if FT_Settled_Payment_Amount_PI__c eq R_payment_amt_2 and FT_Settled_Payment_Amount_PI__c ne . and R_payment_amt_2 ne . then do;
+        Ri_payment_amt_2 = 0;
+        Ri_payment_amt_word_2 = 'Pass';
+    end;
+    else if abs(FT_Settled_Payment_Amount_PI__c - R_payment_amt_2) < 0.01 and FT_Settled_Payment_Amount_PI__c ne . and R_payment_amt_2 ne . then do;
+        Ri_payment_amt_2 = 0;
+        Ri_payment_amt_word_2 = 'Pass';
+    end;
+
+    else do;
+        Ri_payment_amt_2 = 1;
+        Ri_payment_amt_word_2 = 'Fail';
+    end;
+
+    if FT_Settled_Payment_Amount_PI__c eq . then pop2_payment_amt = 1;
+    else pop2_payment_amt = 0;
+
+end;
+
+else if LAO_type = 'Interest Bearing' then do;
+    R_payment_amt = (LAO_interest*FT_Total_Loan_Value_Estimated__c)/(1-(1+LAO_interest)**-LAO_Amort);
+    R_payment_difference = round(abs(R_payment_amt-FT_Origination_Payment_Amount_PI),.001);
+    if FT_Origination_Payment_Amount_PI eq R_payment_amt and FT_Origination_Payment_Amount_PI ne . and R_payment_amt ne . then do;
+        Ri_payment_amt = 0;
+        Ri_payment_amt_word = 'Pass';
+    end;
+    else if abs(FT_Origination_Payment_Amount_PI - R_payment_amt) < 0.01 and FT_Origination_Payment_Amount_PI ne . and R_payment_amt ne . then do;
+        Ri_payment_amt = 0;
+        Ri_payment_amt_word = 'Pass';
+    end;
+    else do;
+        Ri_payment_amt = 1;
+        Ri_payment_amt_word = 'Fail';
+    end;
+
+    if FT_Origination_Payment_Amount_PI eq . then pop1_payment_amt = 1;
+    else pop1_payment_amt = 0;
+
+    R_payment_amt_2 = (LAO_interest*FT_Original_Principal_Balance__c)/(1-(1+LAO_interest)**-FT_Original_Amortization__c);    /* the LAO_interest will be replaced by Activation COB interest rate once it becomes available */
+    R_payment_difference2 = round(abs(R_payment_amt_2-FT_Settled_Payment_Amount_PI__c),.001);
+    if FT_Settled_Payment_Amount_PI__c eq R_payment_amt_2 and FT_Settled_Payment_Amount_PI__c ne . and R_payment_amt_2 ne . then do;
+        Ri_payment_amt_2 = 0;
+        Ri_payment_amt_word_2 = 'Pass';
+    end;
+
+    else if abs(FT_Settled_Payment_Amount_PI__c - R_payment_amt_2) < 0.01 and FT_Settled_Payment_Amount_PI__c ne . and R_payment_amt_2 ne . then do;
+        Ri_payment_amt_2 = 0;
+        Ri_payment_amt_word_2 = 'Pass';
+    end;
+
+    else do;
+        Ri_payment_amt_2 = 1;
+        Ri_payment_amt_word_2 = 'Fail';
+    end;
+
+    if FT_Settled_Payment_Amount_PI__c eq . then pop2_payment_amt = 1;
+    else pop2_payment_amt = 0;
+
+end;
+
+else if LAO_type not in ('0% APR','Interest Bearing') then do;
+    Ri_payment_amt      = 1;
+    Ri_payment_amt_word = 'Fail';
+    Ri_payment_amt_2    = 1;
+    Ri_payment_amt_word_2 = 'Fail';
+    if FT_Origination_Payment_Amount_PI eq . then pop1_payment_amt = 1;
+    else pop1_payment_amt = 0;
+    if FT_Settled_Payment_Amount_PI__c eq . then pop2_payment_amt = 1;
+    else pop2_payment_amt = 0;
+end;
+
+
+/********************************************Total Payment at End of Term**********************************************/
+/*Stage1 - old replication logic*/
+/*R_TotalPay_EOT = FT_Origination_Payment_Amount_PI * LAO_Amort;*/
+/*R_TotalPay_EOT_difference = round(abs(R_TotalPay_EOT-FT_Origination_Payment_Amount_Te),.001);*/
+/*if FT_Origination_Payment_Amount_Te eq R_TotalPay_EOT and R_TotalPay_EOT ne . and FT_Origination_Payment_Amount_Te ne . then do;*/
+/* Ri_TotalPay_EOT = 0;*/
+/* Ri_TotalPay_EOT_word = 'Pass';*/
+/*end;*/
+/**/
+/*else if abs(FT_Origination_Payment_Amount_Te - R_TotalPay_EOT) < 0.01 and R_TotalPay_EOT ne . and FT_Origination_Payment_Amount_Te ne . then do;*/
+/* Ri_TotalPay_EOT = 0;*/
+/* Ri_TotalPay_EOT_word = 'Pass';*/
+/*end;*/
+/**/
+/*else do;*/
+/* Ri_TotalPay_EOT = 1;*/
+/* Ri_TotalPay_EOT_word = 'Fail';*/
+/*end;*/
+/**/
+/*if FT_Origination_Payment_Amount_Te eq . then pop1_payment_amt_EOT = 1;*/
+/*else pop1_payment_amt_EOT = 0; */
+
+/*Stage 2 - old replication logic*/
+/*R_TotalPay_EOT_2 = FT_Settled_Payment_Amount_PI__c * FT_Original_Amortization__c;*/
+/*R_TotalPay_EOT_difference_2 = round(abs(R_TotalPay_EOT_2-FT_Settled_Payment_Amount_Term__),.001);*/
+/*if FT_Settled_Payment_Amount_Term__ eq R_TotalPay_EOT_2 and R_TotalPay_EOT_2 ne . and FT_Settled_Payment_Amount_Term__ ne . then do;*/
+/* Ri_TotalPay_EOT_2 = 0;*/
+/* Ri_TotalPay_EOT_word_2 = 'Pass';*/
+/*end;*/
+/**/
+/*else if abs(FT_Settled_Payment_Amount_Term__ - R_TotalPay_EOT_2) < 0.01 and R_TotalPay_EOT_2 ne . and FT_Settled_Payment_Amount_Term__ ne . then do;*/
+/* Ri_TotalPay_EOT_2 = 0;*/
+/* Ri_TotalPay_EOT_word_2 = 'Pass';*/
+/*end;*/
+/**/
+/*else do;*/
+/* Ri_TotalPay_EOT_2 = 1;*/
+/* Ri_TotalPay_EOT_word_2 = 'Fail';*/
+/*end;*/
+/**/
+/*else do;*/
+/* Ri_TotalPay_EOT_2 = 1;*/
+/* Ri_TotalPay_EOT_word_2 = 'Fail';*/
+/*end;*/
+/**/
+/*if FT_Settled_Payment_Amount_Term__ eq . then pop2_payment_amt_EOT = 1;*/
+/*else pop2_payment_amt_EOT = 0; */
+
+
+/*Stage1*/
+R_TotalPay_EOT = FT_Total_Loan_Value_Estimated__c + FT_Origination_Cost_Of_Borrowing;
+R_TotalPay_EOT_difference = round(abs(R_TotalPay_EOT-FT_Origination_Payment_Amount_Te),.001);
+if FT_Origination_Payment_Amount_Te eq R_TotalPay_EOT and R_TotalPay_EOT ne . and FT_Origination_Payment_Amount_Te ne . then do;
+    Ri_TotalPay_EOT = 0;
+    Ri_TotalPay_EOT_word = 'Pass';
+end;
+
+else if abs(FT_Origination_Payment_Amount_Te - R_TotalPay_EOT) < 0.01 and R_TotalPay_EOT ne . and FT_Origination_Payment_Amount_Te ne . then do;
+    Ri_TotalPay_EOT = 0;
+    Ri_TotalPay_EOT_word = 'Pass';
+end;
+
+else do;
+    Ri_TotalPay_EOT = 1;
+    Ri_TotalPay_EOT_word = 'Fail';
+end;
+
+if FT_Origination_Payment_Amount_Te eq . then pop1_payment_amt_EOT = 1;
+else pop1_payment_amt_EOT = 0;
+
+
+/*Stage 2*/
+R_TotalPay_EOT_2 = FT_Original_Principal_Balance__c + FT_Settled_Cost_of_Borrowing__c;
+R_TotalPay_EOT_difference_2 = round(abs(R_TotalPay_EOT_2-FT_Settled_Payment_Amount_Term__),.001);
+if FT_Settled_Payment_Amount_Term__ eq R_TotalPay_EOT_2 and R_TotalPay_EOT_2 ne . and FT_Settled_Payment_Amount_Term__ ne . then do;
+    Ri_TotalPay_EOT_2 = 0;
+    Ri_TotalPay_EOT_word_2 = 'Pass';
+end;
+
+else if abs(FT_Settled_Payment_Amount_Term__ - R_TotalPay_EOT_2) < 0.01 and R_TotalPay_EOT_2 ne . and FT_Settled_Payment_Amount_Term__ ne . then do;
+    Ri_TotalPay_EOT_2 = 0;
+    Ri_TotalPay_EOT_word_2 = 'Pass';
+end;
+
+else do;
+    Ri_TotalPay_EOT_2 = 1;
+    Ri_TotalPay_EOT_word_2 = 'Fail';
+end;
+
+if FT_Settled_Payment_Amount_Term__ eq . then pop2_payment_amt_EOT = 1;
+else pop2_payment_amt_EOT = 0;
+
+
+/***********************************************Amortization ******************************************************/
+
+/*Stage 1*/
+if LAO_Amort eq . then pop1_amort = 1;
+else pop1_amort = 0;
+
+if LAO_Amort eq 24 then Ai_Amort = 0;
+else Ai_Amort = 1;
+
+/*Stage 2*/
+if FT_Original_Amortization__c eq . then pop2_amort = 1;
+else pop2_amort = 0;
+
+if FT_Original_Amortization__c eq 24 then Ai_Amort_2 = 0;
+else Ai_Amort_2 = 1;
+
+/*********************************************Term - Same as Amortization for Initial COB *************************/
+/*Stage1 */
+if LAO_term eq . then pop1_term = 1;
+else pop1_term = 0;
+
+if LAO_term eq 24 then Ai_term_1 = 0;
+else Ai_term_1 = 1;
+
+/*Stage 2*/
+if FT_Original_Term__c eq . then pop2_term = 1;
+else pop2_term = 0;
+
+if FT_Original_Term__c eq 24 then Ai_term_2 = 0;
+else Ai_term_2 = 1;
+
+
+/*************************************************Client APR ******************************************************/
+/*Stage1 */
+if LAO_client_APR eq . then pop1_APR = 1;
+else pop1_APR = 0;
+
+if LAO_client_APR eq 0 then Ai_APR_1 = 0;
+else Ai_APR_1 = 1;
+
+/*Stage 2*/
+if FT_Settled_APR__c eq . then pop2_APR = 1;
+else pop2_APR = 0;
+
+if FT_Settled_APR__c eq 0 then Ai_APR_2 = 0;
+else Ai_APR_2 = 1;
+
+/*********************************************Annual Interest Rate**************************************************/
+/*Stage 1*/
+
+if LAO_interest eq . then pop1_interest = 1;
+else pop1_interest = 0;
+
+if LAO_interest eq 0 then Ai_interest = 0;
+else Ai_interest = 1;
+
+/*stage 2 */
+if FT_Settled_Interest_Rate__c eq . then pop2_interest = 1;
+else pop2_interest = 0;
+
+if FT_Settled_Interest_Rate__c eq 0 then Ai_interest_2 = 0;
+else Ai_interest_2 = 1;
+
+
+/********************************Interest over term should be 0 at launch for 0 interest ***************************/
+/*Stage 1*/
+if FT_Origination_Interest_Over_Ter eq . then pop1_OG_IOT = 1;
+else pop1_OG_IOT = 0;
+
+if FT_Origination_Interest_Over_Ter eq 0 then Ai_interest_over_term = 0;
+else Ai_interest_over_term = 1;
+
+/*Stage 2*/
+if FT_Settled_Interest_Over_Term__c eq . then pop2_OG_IOT = 1;
+else pop2_OG_IOT = 0;
+
+if FT_Settled_Interest_Over_Term__c eq 0 then Ai_interest_over_term_2 = 0;
+else Ai_interest_over_term_2 = 1;
+
+
+/***********************************************Cost of borrowing**************************************************/
+/*Stage 1*/
+if FT_Origination_Cost_Of_Borrowing eq . then pop1_COB = 1;
+else pop1_COB = 0;
+
+if FT_Origination_Cost_Of_Borrowing eq 0 then Ai_COB = 0;
+else Ai_COB = 1;
+
+/*Stage 2*/
+if FT_Settled_Cost_of_Borrowing__c eq . then pop2_COB = 1;
+else pop2_COB = 0;
+
+if FT_Settled_Cost_of_Borrowing__c eq 0 then Ai_COB_2 = 0;
+else Ai_COB_2 = 1;
+
+/******************************************Date of Advance******************************************************/
+/*Stage 1 - Application date + 3 days*/
+/*if FT_Date_of_Advance__c_1 in ('') then pop1_DOA = 1;*/
+if FT_Date_of_Advance__c_1 = . then pop1_DOA = 1;
+else pop1_DOA = 0;
+
+/*if input(trim(FT_Date_of_Advance__c_1),anydtdte10.) = FT_Application_Date__c +3 and FT_Date_of_Advance__c_1 not in ('') and FT_Application_Date__c > 0 then Ai_DOA_1 = 0;*/
+if FT_Date_of_Advance__c_1 = FT_Application_Date__c +3 and FT_Date_of_Advance__c_1 ne . and FT_Application_Date__c > 0 then Ai_DOA_1 = 0;
+else Ai_DOA_1 = 1;
+
+/*if FT_Date_of_Advance__c_2 in ('') then pop2_DOA = 1;*/
+if FT_Date_of_Advance__c_2 = . then pop2_DOA = 1;
+else pop2_DOA = 0;
+
+/*if input(trim(FT_Date_of_Advance__c_2),anydtdte10.) = FT_Loan_Settled_Date__c and FT_Loan_Settled_Date__c > 0 and FT_Date_of_Advance__c_2 not in ('') then Ai_DOA_2 = 0;*/
+if FT_Date_of_Advance__c_2 = FT_Loan_Settled_Date__c and FT_Loan_Settled_Date__c > 0 and FT_Date_of_Advance__c_2 ne . then Ai_DOA_2 = 0;
+else Ai_DOA_2 = 1;
+
+
+/******************************************First Payment Date ******************************************************/
+
+/*Stage 1 - FPD Uses same day of month as DOA, but one month later (if doa is mar 31 then date would be apr 30) */
+/*In the event that is less than 30 days then add 30 days to DOA to get FPD*/
+/*stage_1_nextpmt_cal_temp = intnx('month', input(trim(FT_Date_of_Advance__c_1),anydtdte10.) ,1,"sameday");*/
+stage_1_nextpmt_cal_temp = intnx('month', FT_Date_of_Advance__c_1 ,1,"sameday");
+
+/*if stage_1_nextpmt_cal_temp - input(trim(FT_Date_of_Advance__c_1),anydtdte10.) < 30 */
+if stage_1_nextpmt_cal_temp - FT_Date_of_Advance__c_1 < 30
+    then stage_1_nextpmt_cal = intnx('day', FT_Date_of_Advance__c_1 ,30);
+else stage_1_nextpmt_cal = stage_1_nextpmt_cal_temp;
+
+if FT_First_Payment_Date__c_1 in ('') then pop1_first_pmt_date = 1;
+if FT_First_Payment_Date__c_1 = . then pop1_first_pmt_date = 1;
+else pop1_first_pmt_date = 0;
+
+/*if stage_1_nextpmt_cal = input(trim(FT_First_Payment_Date__c_1),anydtdte10.) and FT_Date_of_Advance__c_1 not in ('') and FT_First_Payment_Date__c_1 not in ('') then Ai_first_pmt_date_1 = 0;*/
+if stage_1_nextpmt_cal = FT_First_Payment_Date__c_1 and FT_Date_of_Advance__c_1 ne . and FT_First_Payment_Date__c_1 ne . then Ai_first_pmt_date_1 = 0;
+else Ai_first_pmt_date_1 = 1;
+
+/*Stage 2 - FPD Uses same day of month as DOA, but one month later (if doa is mar 31 then date would be apr 30) */
+/*In the event that is less than 30 days then add 30 days to DOA to get FPD*/
+/*stage_2_nextpmt_cal_temp = intnx('month', input(trim(FT_Date_of_Advance__c_2),anydtdte10.) ,1,"sameday");*/
+stage_2_nextpmt_cal_temp = intnx('month', FT_Date_of_Advance__c_2 ,1,"sameday");
+
+if stage_2_nextpmt_cal_temp - FT_Date_of_Advance__c_2 < 30
+    then stage_2_nextpmt_cal = intnx('day', FT_Date_of_Advance__c_2 ,30);
+else stage_2_nextpmt_cal = stage_2_nextpmt_cal_temp;
+
+if FT_First_Payment_Date__c_2 = . then pop2_first_pmt_date = 1;
+else pop2_first_pmt_date = 0;
+
+/*if stage_2_nextpmt_cal = input(trim(FT_First_Payment_Date__c_2),anydtdte10.) and FT_Date_of_Advance__c_2 not in ('') and FT_First_Payment_Date__c_2 not in ('') then Ai_first_pmt_date_2 = 0;*/
+if stage_2_nextpmt_cal = FT_First_Payment_Date__c_2 and FT_Date_of_Advance__c_2 ne . and FT_First_Payment_Date__c_2 ne . then Ai_first_pmt_date_2 = 0;
+else Ai_first_pmt_date_2 = 1;
+
+/***********************************************Other Fee**********************************************************/
+
+if PTR_Other_Fees__c eq . then pop1_other_fee = 1;
+else pop1_other_fee = 0;
+
+if PTR_Other_Fees__c eq 0 then Ai_other_fee = 0;
+else Ai_other_fee = 1;
+
+/******************************************Prepayment Previlege ******************************************************/
+if PTR_Prepayment_Privileges__c in ('',' ') then pop1_PPP = 1;
+else pop1_PPP = 0;
+
+if PTR_Prepayment_Privileges__c eq 'Open' then Ai_ppp = 0;
+else Ai_ppp = 1;
+
+/******************************************Prepayment Charges*******************************************************/
+if PTR_Prepayment_Charges__c in ('',' ') then pop1_PP_charge = 1;
+else pop1_PP_charge = 0;
+
+if PTR_Prepayment_Charges__c eq 'N/A' then Ai_pp_charge = 0;
+else Ai_pp_charge = 1;
+
+/******************************************Default Insurance******************************************************/
+if PTR_Default_Insurance__c in ('',' ') then pop1_DI = 1;
+else pop1_DI = 0;
+
+if PTR_Default_Insurance__c eq 'N/A' then Ai_DI = 0;
+else Ai_DI = 1;
+
+
+/***********************************************Summing Errors**********************************************************/
+/*initial*/
+Sum_Initial_COB_error = SUM(Ai_principal_amount, Ri_payment_amt, Ri_totalpay_EOT, Ai_amort, Ai_interest, Ai_interest_over_term, Ai_COB, Ai_term_1, Ai_APR_1, Ai_DOA_1, Ai_first_pmt_date_1);
+
+/*activation*/
+Sum_activation_COB_error = SUM(Ai_principal_amount_2, Ri_payment_amt_2, Ri_totalpay_EOT_2, Ai_amort_2, Ai_term_2, Ai_interest_over_term_2, Ai_COB, Ai_interest_2, Ai_APR_2, Ai_DOA_2, Ai_first_pmt_date_2);
+
+/*Sum_All_error*/
+Sum_all_error = SUM(Sum_Initial_COB_error, Sum_activation_COB_error);
+
+/***********************************************Summing Blank**********************************************************/
+/*initial*/
+Sum_Initial_COB_blank = SUM(pop1_principal_amt, pop1_payment_amt, pop1_payment_amt_EOT, pop1_amort, pop1_interest, pop1_OG_IOT, pop1_COB, pop1_term, pop1_APR, pop1_DOA, pop1_first_pmt_date);
+
+/*activation*/
+Sum_activation_COB_blank = SUM(pop2_principal_amt, pop2_payment_amt, pop2_payment_amt_EOT, pop2_amort, pop2_term, pop2_OG_IOT, pop2_COB, pop2_interest, pop2_APR, pop2_DOA, pop2_first_pmt_date);
+
+/*Sum_All_error*/
+Sum_all_blank = SUM(Sum_Initial_COB_blank, Sum_activation_COB_blank);
+
+/**************************************************Esignature***********************************************************/
+
+if FT_e_signature_for_Loan_Agreemen = 1 then esignature_status = 'Provided E-signature';
+else esignature_status = 'Missing E-signature';
+
+/***********************************************Settled date indicator**************************************************/
+
+if FT_Loan_Settled_Date__c ne . then Settled_date_availabilty = 'Yes';
+else Settled_date_availabilty = 'No';
+
+If (FT_Application_Date__c >= &mth_beg.d and FT_Application_Date__c <= &mth_end.d) or
+   (FT_Loan_Settled_Date__c >= &mth_beg.d and FT_Loan_Settled_Date__c <= &mth_end.d) then output;
+
+run;
+/**** Zahra Added below logic for automation *********/
+data stage1_accuracy_cur;
+set bread.stage1_accuracy_cur_&label.;
+dummy5='';
+dummy6='';
+dummy7='';
+dummy8='';
+dummy9='';
+dummy10='';
+dummy11='';
+dummy12='';
+dummy13='';
+dummy14='';
+dummy15='';
+run;
+data stage1_accuracy_cur2;
+set stage1_accuracy_cur;
+FT_Loan_Settled_Date__c2=put(FT_Loan_Settled_Date__c,yymmdd10.);
+drop FT_Loan_Settled_Date__c;
+rename FT_Loan_Settled_Date__c2=FT_Loan_Settled_Date__c;
+run;
+data stage1_accuracy_cur3 ;
+set stage1_accuracy_cur2 (keep=FT_Loan_Settled_Date__c);
+set stage1_accuracy_cur2;
+run;
+%put &mth_end2;
+proc export data =stage1_accuracy_cur3
+/*outfile="R:\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\dev\Payplan_Dashboard_&mth_end2..*"*/
+outfile="\\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\Payplan_Dashboard_&mth_end2..xlsx"
+dbms=xlsx replace;
+sheet='Raw';
+run;
+/*******update variable tab to include date since previous month to today ()***********/
+%let sdate=&sysdate9;
+%put &sdate;
+data _null_;
+EsignDate=("&sdate."d);
+SettledDate=("&sdate."d);
+
+EsignDate_previous_month=intnx("month","&sdate."d,-1,"b");
+SettledDate_previous_month=intnx("month","&sdate."d,-1,"b");
+
+call symput('EsignDate',put("&sdate."d,date9.));
+call symput ('SettledDate',put("&sdate."d,date9.));
+call symput('EsignDate_previous_month',put(EsignDate_previous_month,date9.));
+call symput ('SettledDate_previous_month',put(SettledDate_previous_month,date9.));
+run;
+%put &EsignDate;
+%put &SettledDate;
+%put &EsignDate_previous_month;
+%put &SettledDate_previous_month;
+data EsignDate;
+format EsignDate date9.;
+do EsignDate = "&EsignDate_previous_month."d to "&EsignDate."d;
+output;
+end;
+run;
+data SettledDate;
+format SettledDate date9.;
+do SettledDate= "&EsignDate_previous_month."d to "&EsignDate."d;
+output;
+end;
+run;
+data tot;
+merge EsignDate SettledDate;
+run;
+data wanted;
+set tot;
+EsignDate2=put(EsignDate,yymmdd10.);
+SettledDate2=put(SettledDate,yymmdd10.);
+run;
+data prefinal;
+set wanted;
+/*SettledDate3=catx('/',month,date,year);*/
+drop EsignDate SettledDate /*date Month Year SettledDate2*/;
+rename EsignDate2=EsignDate /*SettledDate3=SettledDate*/ SettledDate2=SettledDate;
+run;
+
+proc sql;
+insert into prefinal
+set EsignDate='MTD' ,
+    SettledDate='MTD'
+
+set EsignDate='.' ,
+    SettledDate='.'
+;
+quit;
+data final_Variables;
+
+set prefinal (where=(EsignDate='.'))
+
+    prefinal (where=(EsignDate ne '.'));
+
+run;
+proc export data =final_Variables
+/*outfile="R:\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\dev\Payplan_Dashboard_&mth_end2..*"*/
+outfile="\\maple\data\Toronto\wrkgrp\wrkgrp33\RSD Files\DataIntegrity\Regulatory\COB\Bread\Data\Dashboard\Payplan_Dashboard_&mth_end2..xlsx"
+dbms=xlsx replace;
+sheet='Variables';
+run;
+
+rsubmit;
+x 'chmod 777 /sas/RSD/COB/bread/*.sas7bdat';
+endrsubmit;
